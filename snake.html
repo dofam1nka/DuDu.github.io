@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Неоновая змейка</title>
+<style>
+:root{color-scheme:dark;--green:#67ff8b;--muted:#8d9eaa}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;min-height:100svh;background:radial-gradient(ellipse at top,#142b24 0%,#080d12 50%,#05070b 100%);color:#ecfff1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;place-items:center;padding:20px 16px;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+main{width:100%;max-width:480px;text-align:center}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;text-align:left}
+h1{font-size:clamp(22px,6vw,30px);margin:0;letter-spacing:3px;color:var(--green);text-shadow:0 0 22px #67ff8b50}
+.tag{font-size:10px;letter-spacing:3px;color:var(--muted);margin:5px 0 0}
+.scores{display:flex;gap:9px}.score{background:#101c21;border:1px solid #263c36;border-radius:12px;padding:8px 13px;min-width:68px;text-align:center}.score span{display:block;font-size:10px;letter-spacing:1px;color:var(--muted)}.score strong{font-size:23px;font-variant-numeric:tabular-nums}
+.board{position:relative;width:min(100%,52vh,440px);width:min(100%,52svh,440px);aspect-ratio:1;margin:auto;border:1px solid #315943;border-radius:18px;overflow:hidden;background:#020806;box-shadow:0 0 35px #45ff7712,0 20px 60px #0008;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#020806dc;backdrop-filter:blur(4px)}
+[hidden]{display:none!important}
+.overlay h2{font-size:clamp(23px,6vw,32px);margin:0 0 10px}.overlay p{color:#b2c3ba;line-height:1.6;margin:0 0 22px;max-width:270px;font-size:14px}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.primary{background:var(--green);color:#05220e;border:0;border-radius:12px;padding:14px 24px;font-weight:800;box-shadow:0 0 25px #67ff8b30}.primary:hover{background:#a1ffb7}.primary:active{transform:scale(.97)}
+button:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:13px auto;color:var(--muted);font-size:12px;max-width:440px;gap:10px}.pause{background:#13221d;border:1px solid #2d4d3a;color:#d1f9dc;border-radius:8px;padding:8px 12px;min-width:85px}.pause:disabled{opacity:.4;cursor:default}
+.controls{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,62px);gap:9px;justify-content:center;margin:16px auto 0;user-select:none;-webkit-user-select:none}
+.arrow{border:1px solid #315c42;border-radius:15px;background:linear-gradient(155deg,#1a3226,#0b1712);color:var(--green);font-size:29px;font-weight:700;box-shadow:0 5px 0 #020805,0 0 15px #67ff8b08;touch-action:none}.arrow:hover{border-color:var(--green)}.arrow:active{transform:translateY(3px);background:#204d30;box-shadow:0 2px 0 #020805,0 0 20px #67ff8b30}
+.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+.hint{font-size:11px;color:#6f877a;margin:16px 0 0;line-height:1.6}
+@media(max-width:360px){body{padding:12px}header{gap:6px}.scores{gap:5px}.score{padding:7px 9px;min-width:58px}.controls{grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,56px)}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div><h1>SNAKE<span style="color:#eefdf2">.</span></h1><p class="tag">NEON ARCADE</p></div>
+<div class="scores"><div class="score"><span>СЧЁТ</span><strong id="score">0</strong></div><div class="score"><span>РЕКОРД</span><strong id="best">0</strong></div></div>
+</header>
+<div class="board" id="board">
+<canvas id="canvas" role="img" aria-label="Игровое поле змейки"></canvas>
+<div class="overlay" id="overlay">
+<h2 id="title">Поймай неон</h2>
+<p id="message">Собирай красную еду. Не врезайся в стены и собственный хвост.</p>
+<button class="primary" id="action">Играть</button>
+</div>
+</div>
+<div class="toolbar"><span id="status" role="status" aria-live="polite">Готов к игре?</span><button class="pause" id="pause" disabled>Ⅱ Пауза</button></div>
+<div class="controls" aria-label="Управление змейкой">
+<button class="arrow up" data-dir="up" aria-label="Вверх">↑</button>
+<button class="arrow left" data-dir="left" aria-label="Влево">←</button>
+<button class="arrow down" data-dir="down" aria-label="Вниз">↓</button>
+<button class="arrow right" data-dir="right" aria-label="Вправо">→</button>
+</div>
+<p class="hint">ПК: стрелки · Пробел — пауза<br>Телефон: кнопки-стрелки под полем</p>
+</main>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+const N = 20, dirs = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+let snake, dir, queue, food, score, best = 0, state = 'ready';
+let size = 400, lastTime = 0, elapsed = 0;
+try { best = Math.max(0, Number(localStorage.getItem('neon-snake-best')) || 0); } catch (_) {}
+$('best').textContent = best;
+function reset() {
+  snake = [{x:9,y:10},{x:8,y:10},{x:7,y:10},{x:6,y:10}];
+  dir = dirs.right; queue = []; score = 0; elapsed = 0;
+  $('score').textContent = score;
+  spawnFood();
+}
+function spawnFood() {
+  const free = [];
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++) {
+    if (!snake.some(p => p.x===x && p.y===y)) free.push({x,y});
+  }
+  food = free.length ? free[Math.floor(Math.random()*free.length)] : null;
+}
+function showOverlay(title,message,label) {
+  $('title').textContent=title; $('message').textContent=message;
+  $('action').textContent=label; $('overlay').hidden=false;
+}
+function start() {
+  reset(); state='running'; $('overlay').hidden=true;
+  $('pause').disabled=false; $('pause').textContent='Ⅱ Пауза';
+  $('status').textContent='Собирай еду и не останавливайся';
+  lastTime=performance.now(); draw();
+}
+function togglePause() {
+  if(state==='running') {
+    state='paused'; $('pause').textContent='▶ Продолжить';
+    $('status').textContent='Игра на паузе';
+    showOverlay('Пауза','Переведи дыхание. Змейка подождёт.','Продолжить');
+  } else if(state==='paused') {
+    state='running'; elapsed=0; lastTime=performance.now();
+    $('pause').textContent='Ⅱ Пауза'; $('overlay').hidden=true;
+    $('status').textContent='Собирай еду и не останавливайся';
+  }
+}
+function finish(win=false) {
+  state='over'; $('pause').disabled=true;
+  $('status').textContent=win?'Всё поле заполнено!':'Попробуешь побить рекорд?';
+  showOverlay(win?'Победа!':'Игра окончена',`Твой счёт: ${score}. Рекорд: ${best}.`,'Начать заново');
+}
+function turn(name) {
+  if(state!=='running' || queue.length>=2) return;
+  const next=dirs[name], prev=queue.length?queue[queue.length-1]:dir;
+  if(next.x===prev.x && next.y===prev.y) return;
+  if(next.x===-prev.x && next.y===-prev.y) return;
+  queue.push(next);
+}
+function tick() {
+  if(queue.length) dir=queue.shift();
+  const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  const eats=food && head.x===food.x && head.y===food.y;
+  // При обычном ходе хвост освобождает свою клетку.
+  const body=eats?snake:snake.slice(0,-1);
+  if(head.x<0 || head.y<0 || head.x>=N || head.y>=N || body.some(p=>p.x===head.x && p.y===head.y)) {
+    finish(); return;
+  }
+  snake.unshift(head);
+  if(eats) {
+    score+=10; $('score').textContent=score;
+    if(score>best) {
+      best=score; $('best').textContent=best;
+      try { localStorage.setItem('neon-snake-best',String(best)); } catch (_) {}
+    }
+    spawnFood();
+    if(!food) finish(true);
+  } else snake.pop();
+}
+function rounded(x,y,w,h,r) {
+  ctx.beginPath(); ctx.roundRect(x,y,w,h,r); ctx.fill();
+}
+function draw() {
+  const cell=size/N;
+  ctx.clearRect(0,0,size,size); ctx.fillStyle='#020806'; ctx.fillRect(0,0,size,size);
+  ctx.strokeStyle='#13332255'; ctx.lineWidth=.6; ctx.beginPath();
+  for(let i=1;i<N;i++) {const p=i*cell;ctx.moveTo(p,0);ctx.lineTo(p,size);ctx.moveTo(0,p);ctx.lineTo(size,p);}
+  ctx.stroke();
+  if(food) {
+    const x=(food.x+.5)*cell,y=(food.y+.5)*cell;
+    ctx.shadowColor='#ff3f65'; ctx.shadowBlur=18; ctx.fillStyle='#ff496b';
+    ctx.beginPath(); ctx.arc(x,y,cell*.32,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0; ctx.fillStyle='#ffc6d1'; ctx.beginPath();
+    ctx.arc(x-cell*.08,y-cell*.09,cell*.09,0,Math.PI*2);ctx.fill();
+  }
+  for(let i=snake.length-1;i>=0;i--) {
+    const p=snake[i],gap=Math.max(1.2,cell*.08);
+    ctx.fillStyle=i===0?'#a2ffb8':`hsl(137 85% ${Math.max(39,60-i*.5)}%)`;
+    ctx.shadowColor='#4bff7c';ctx.shadowBlur=i===0?16:7;
+    rounded(p.x*cell+gap,p.y*cell+gap,cell-2*gap,cell-2*gap,cell*.23);
+  }
+  ctx.shadowBlur=0;
+  const h=snake[0],cx=(h.x+.5)*cell,cy=(h.y+.5)*cell;
+  ctx.fillStyle='#042510';
+  for(const side of [-1,1]) {
+    const x=cx+dir.x*cell*.2-dir.y*side*cell*.18;
+    const y=cy+dir.y*cell*.2+dir.x*side*cell*.18;
+    ctx.beginPath(); ctx.arc(x,y,cell*.065,0,Math.PI*2);ctx.fill();
+  }
+}
+function resize() {
+  size=$('board').clientWidth;
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  canvas.width=Math.round(size*dpr);canvas.height=Math.round(size*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);draw();
+}
+$('action').addEventListener('click',()=>state==='paused'?togglePause():start());
+$('pause').addEventListener('click',togglePause);
+document.querySelectorAll('[data-dir]').forEach(button=>{
+  button.addEventListener('pointerdown',e=>{e.preventDefault();turn(button.dataset.dir);});
+  // Синтетический click позволяет управлять кнопками с клавиатуры и экранного диктора.
+  button.addEventListener('click',e=>{if(e.detail===0) turn(button.dataset.dir);});
+});
+window.addEventListener('keydown',e=>{
+  const map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+  if(map[e.key]) {e.preventDefault();if(!e.repeat) turn(map[e.key]);}
+  else if(e.code==='Space' && e.target.tagName!=='BUTTON') {
+    e.preventDefault();if(e.repeat) return;
+    if(state==='ready' || state==='over') start(); else togglePause();
+  }
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden && state==='running') togglePause();});
+window.addEventListener('blur',()=>{if(state==='running') togglePause();});
+function frame(now) {
+  const delta=Math.min(now-lastTime,150);lastTime=now;
+  if(state==='running') {
+    elapsed+=delta;
+    const step=Math.max(75,145-Math.floor(score/50)*8);
+    while(elapsed>=step && state==='running') {elapsed-=step;tick();}
+  }
+  draw();requestAnimationFrame(frame);
+}
+reset();
+if(window.ResizeObserver) new ResizeObserver(resize).observe($('board'));
+else window.addEventListener('resize',resize);
+resize(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
