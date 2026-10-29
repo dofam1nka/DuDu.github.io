@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DuDu: Retro Racing</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      : none;-webkit-touch-callout
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    body {
+      background-color: #05050b;
+      color: #00ffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      touch-action: none;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 850px;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+    }
+    canvas {
+      width: 100%;
+      flex: 1;
+      display: block;
+      background: #080812;
+    }
+    .hud {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      z-index: 5;
+      text-shadow: 0 0 8px #00ffff;
+    }
+    .hud span {
+      background: rgba(8, 12, 24, 0.7);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 255, 0.4);
+    }
+    .touch-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .steer-group {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .btn {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, 0.1);
+      border: 2px solid #00ffff;
+      color: #00ffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 0 14px rgba(0, 255, 255, 0.4), inset 0 0 8px rgba(0, 255, 255, 0.3);
+      cursor: pointer;
+      outline: none;
+      transition: transform 0.08s, background 0.08s;
+      pointer-events: auto;
+    }
+    .btn:active, .btn.active {
+      transform: scale(0.92);
+      background: rgba(0, 255, 255, 0.35);
+      box-shadow: 0 0 22px rgba(0, 255, 255, 0.8), inset 0 0 12px #00ffff;
+    }
+    .btn-gas {
+      width: 76px;
+      height: 76px;
+      border-color: #ff007f;
+      color: #ff007f;
+      box-shadow: 0 0 14px rgba(255, 0, 127, 0.4), inset 0 0 8px rgba(255, 0, 127, 0.3);
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+    .btn-gas:active, .btn-gas.active {
+      background: rgba(255, 0, 127, 0.35);
+      box-shadow: 0 0 22px rgba(255, 0, 127, 0.8), inset 0 0 12px #ff007f;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 12, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      backdrop-filter: blur(4px);
+    }
+    .overlay.hidden {
+      display: none;
+    }
+    .overlay h1 {
+      font-size: 28px;
+      color: #ff0055;
+      text-shadow: 0 0 14px #ff0055, 0 0 24px #ff0055;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .overlay p {
+      font-size: 16px;
+      color: #00ffff;
+      margin-bottom: 24px;
+      text-shadow: 0 0 8px #00ffff;
+    }
+    .overlay-btn {
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #05050b;
+      background: #00ffff;
+      border: none;
+      border-radius: 28px;
+      box-shadow: 0 0 16px #00ffff;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      outline: none;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .overlay-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 26px #00ffff;
+    }
+    .hud {gap:5px;flex-wrap:wrap;font-size:11px} .hud span {padding:6px 8px} #coin-el {color:#ffd45c;border-color:#776025;text-shadow:0 0 8px #ffc400} .overlay {padding:20px;gap:12px} .overlay p {margin-bottom:8px;text-align:center;line-height:1.6} .overlay h1 {font-size:26px} .secondary {background:#14172d;color:#b6c8eb;box-shadow:none;border:1px solid #414964;font-size:13px;letter-spacing:.5px} .menu-tag {color:#8d9ab8;font-size:11px;letter-spacing:4px} .menu-balance {color:#ffd45c!important;font-weight:800} .shop-panel {width:100%;max-height:100%;display:flex;flex-direction:column;gap:12px;min-height:0} .shop-head {display:flex;align-items:center;justify-content:space-between;gap:8px} .shop-head h2 {font-size:20px} #shop-grid {overflow-y:auto;touch-action:pan-y;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:4px 4px 20px} .car-card {background:linear-gradient(150deg,#15172a,#080b17);border:1px solid #303650;border-radius:14px;padding:12px;text-align:center;color:#e5edff} .car-card.selected {border-color:#00ffff;box-shadow:inset 0 0 16px #00ffff14} .car-card canvas {width:100%;height:88px;background:transparent} .car-card strong {display:block;font-size:13px;margin:7px 0} .car-card small {display:block;color:#879bbd;font-size:11px;min-height:28px} .car-card button {width:100%;padding:10px 3px;border-radius:8px;border:1px solid #665b2f;background:#ffd45c;color:#15131a;font-weight:700;cursor:pointer} .car-card button:disabled {background:#1d2236;color:#8c9ab7;border-color:#353e58;cursor:default} #shop-note {font-size:12px;color:#b7c4df;min-height:20px} .overlay.hidden {display:none} #main-menu h1 {font-size:clamp(36px,9vw,60px);font-weight:900;line-height:1.05;letter-spacing:2px;text-transform:none;color:#e4ffff;text-shadow:0 0 4px #fff,0 0 14px #00ffff,0 0 32px #00bfff;margin-bottom:8px} #main-menu h1 span {display:block;margin-top:8px;font-size:.58em;letter-spacing:3px;text-transform:uppercase;color:#ffb4ef;text-shadow:0 0 5px #ff78dd,0 0 18px #ff007f,0 0 32px #bf00ff} #main-menu .overlay-btn {min-width:230px} .touch-controls.hidden {display:none} button {touch-action:manipulation} #shop-screen {background:rgba(5,5,12,.97)}
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div class="hud">
+    <span id="score-el">ДИСТАНЦИЯ: 0 м</span>
+    <span id="speed-el">0 КМ/Ч</span>
+    <span id="coin-el">◉ 0</span>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="touch-controls">
+    <div class="steer-group">
+      <button class="btn" id="btn-left">◀</button>
+      <button class="btn" id="btn-right">▶</button>
+    </div>
+    <button class="btn btn-gas" id="btn-gas">ГАЗ</button>
+  </div>
+
+  <div class="overlay" id="game-over-screen">
+    <h1 id="overlay-title">АВАРИЯ</h1>
+    <p id="overlay-score">Пройдено: 0 м</p>
+    <button class="overlay-btn" id="restart-btn">Начать заново</button>
+    <button class="overlay-btn secondary" id="back-menu">Главное меню</button>
+  </div>
+  <div class="overlay" id="main-menu">
+    <div class="menu-tag">NEON HIGHWAY • 4 ПОЛОСЫ</div>
+    <h1>DuDu: <span>Retro Racing</span></h1>
+    <p class="menu-balance" id="menu-wallet"></p>
+    <canvas id="menu-preview" style="width:130px;height:150px;flex:none;background:transparent"></canvas>
+    <p id="selected-name"></p>
+    <button class="overlay-btn" id="play-btn">На трассу</button>
+    <button class="overlay-btn secondary" id="shop-btn">Магазин · 20 моделей</button>
+    <p style="font-size:12px;color:#a2aec8">← → — руль · ↑ — газ<br>Собирай монеты: каждая даёт +2.<br>Покупки и баланс сохраняются в этом браузере.</p>
+  </div>
+  <div class="overlay hidden" id="shop-screen">
+    <div class="shop-panel">
+      <div class="shop-head"><h2>Неоновый гараж</h2><span class="menu-balance" id="shop-wallet"></span></div>
+      <p style="font-size:12px">20 моделей от 70 до 1500 монет + стартовая машина</p>
+      <div id="shop-note" role="status">Покупай и выбирай машину для следующего заезда.</div>
+      <div id="shop-grid"></div>
+      <button class="overlay-btn secondary" id="close-shop">В главное меню</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const scoreEl = document.getElementById('score-el');
+  const speedEl = document.getElementById('speed-el');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const overlayScore = document.getElementById('overlay-score');
+  const restartBtn = document.getElementById('restart-btn');
+
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  const btnGas = document.getElementById('btn-gas');
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const keys = { left: false, right: false, gas: false };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.gas = true;
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.gas = false;
+  });
+
+  function bindTouch(btn, prop) {
+    const press = (e) => {
+      e.preventDefault();
+      keys[prop] = true;
+      btn.classList.add('active');
+    };
+    const release = (e) => {
+      e.preventDefault();
+      keys[prop] = false;
+      btn.classList.remove('active');
+    };
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('touchend', release, { passive: false });
+    btn.addEventListener('touchcancel', release, { passive: false });
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  }
+
+  bindTouch(btnLeft, 'left');
+  bindTouch(btnRight, 'right');
+  bindTouch(btnGas, 'gas');
+
+  // Магазин и сохранение прогресса.
+  const $ = id => document.getElementById(id);
+  const mainMenu=$('main-menu'), shopScreen=$('shop-screen'), controls=document.querySelector('.touch-controls');
+  const prices=[70,100,140,180,230,280,340,400,470,550,630,720,820,920,1030,1140,1250,1350,1430,1500];
+  const names=['Искра','Вектор','Пульс','Мираж','Спектр','Комета','Фантом','Турбо','Вихрь','Призма','Глитч','Ронин','Зенит','Нова','Хищник','Кобра','Затмение','Гиперион','Сингулярность','Апекс'];
+  const colors=['#60ffae','#49caff','#ff756b','#b999ff','#ffe268','#ff77ce','#70e9ff','#ff9e46','#a4ff63','#b779ff','#ff4b82','#62fff2','#f2f5ff','#d2a4ff','#ff5050','#8cffda','#a6a0ff','#ffce69','#71b8ff','#ff55dc'];
+  const cars=[{id:0,name:'Неон · Старт',price:0,color:'#00ffff',shape:0},...prices.map((price,i)=>({id:i+1,name:names[i],price,color:colors[i],shape:i%5}))];
+  let wallet=0,owned=[0],selected=0,saveWorks=true;
+  try {const data=JSON.parse(localStorage.getItem('retro-neon-garage-v1')||'null');if(data){wallet=Number.isFinite(data.wallet)?Math.max(0,Math.floor(data.wallet)):0;owned=[...new Set([0,...(Array.isArray(data.owned)?data.owned.filter(id=>Number.isInteger(id)&&id>0&&id<=20):[])])];selected=owned.includes(data.selected)?data.selected:0;}} catch(e){saveWorks=false;}
+  let mode='menu',earned=0,coins=[],coinTimer=1;
+  function save(){try{localStorage.setItem('retro-neon-garage-v1',JSON.stringify({wallet,owned,selected}));}catch(e){saveWorks=false;}}
+  function currentCar(){return cars[selected];}
+  function clearInput(){keys.left=keys.right=keys.gas=false;document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));}
+  window.addEventListener('blur',clearInput);
+  document.addEventListener('visibilitychange',clearInput);
+  window.addEventListener('keydown',e=>{if(mode==='race'&&['ArrowLeft','ArrowRight','ArrowUp'].includes(e.key))e.preventDefault();});
+  function balances(){ $('coin-el').textContent='◉ '+wallet+' (+'+earned+')';$('menu-wallet').textContent='◉ '+wallet+' монет';$('shop-wallet').textContent='◉ '+wallet; }
+  function preview(c,car){const ratio=Math.min(devicePixelRatio||1,2);const w=c.clientWidth||140,h=c.clientHeight||88;c.width=w*ratio;c.height=h*ratio;const g=c.getContext('2d');g.scale(ratio,ratio);g.translate(w/2,h/2);const a=car.shape;g.shadowColor=car.color;g.shadowBlur=14;g.strokeStyle=car.color;g.lineWidth=2;g.fillStyle='#131827';const bw=28+a*2,bh=58+a*3;g.beginPath();g.roundRect(-bw/2,-bh/2,bw,bh,[3+a,3+a,6,6]);g.fill();g.stroke();g.fillStyle=car.color;g.fillRect(-bw/2+4,-bh/2+4,5,3);g.fillRect(bw/2-9,-bh/2+4,5,3);g.fillStyle='#203646';g.fillRect(-bw/2+5,-bh/2+15,bw-10,13);g.fillStyle=car.color;for(let j=0;j<=a;j++)g.fillRect(-bw/2+5+j*(bw-10)/(a+1),6,2,14);if(a>=3)g.fillRect(-bw/2-3,bh/2-7,bw+6,4);}
+  function showMenu(){mode='menu';isGameOver=true;clearInput();gameOverScreen.classList.add('hidden');shopScreen.classList.add('hidden');mainMenu.classList.remove('hidden');controls.classList.add('hidden');balances();$('selected-name').textContent='Твоя машина: '+currentCar().name;preview($('menu-preview'),currentCar());}
+  function renderShop(){balances();const grid=$('shop-grid');grid.replaceChildren();cars.forEach(car=>{const card=document.createElement('div');card.className='car-card'+(selected===car.id?' selected':'');const c=document.createElement('canvas');c.setAttribute('aria-label',car.name);card.appendChild(c);const name=document.createElement('strong');name.textContent=car.name;card.appendChild(name);const info=document.createElement('small');info.textContent=car.id===0?'Бесплатная стартовая модель':'Модель '+String(car.id).padStart(2,'0')+' · уникальный кузов и неон';card.appendChild(info);const b=document.createElement('button');const has=owned.includes(car.id);b.textContent=selected===car.id?'✓ Выбрана':has?'Выбрать':'Купить · ◉ '+car.price;b.disabled=selected===car.id||(!has&&wallet<car.price);b.onclick=()=>{if(!owned.includes(car.id)){if(wallet<car.price)return;wallet-=car.price;owned.push(car.id);}selected=car.id;save();renderShop();};card.appendChild(b);grid.appendChild(card);preview(c,car);});$('shop-note').textContent=saveWorks?'Все модели равны по скорости: выбирай любимый стиль.':'Сохранение недоступно: прогресс останется только до закрытия игры.';}
+  $('shop-btn').onclick=()=>{mode='shop';mainMenu.classList.add('hidden');shopScreen.classList.remove('hidden');renderShop();};
+  $('close-shop').onclick=showMenu;$('back-menu').onclick=showMenu;$('play-btn').onclick=()=>resetGame();
+  function finishRace(){if(isGameOver)return;isGameOver=true;mode='over';clearInput();save();controls.classList.add('hidden');gameOverScreen.classList.remove('hidden');overlayScore.textContent='Пройдено: '+Math.floor(distance/10)+' м · Монеты: +'+earned;balances();}
+  // Параметры игры
+  let distance = 0;
+  let speed = 0;
+  let baseSpeed = 220;
+  let maxSpeed = 520;
+  let isGameOver = false;
+
+  // Игрок
+  const player = {
+    x: 0,
+    y: 0,
+    w: 30,
+    h: 52,
+    vx: 0
+  };
+
+  // Трасса
+  let roadOffset = 0;
+  const LANES = 4;
+  let ROAD_WIDTH = width * .8;
+  let scale = Math.min(1.25, ROAD_WIDTH / LANES / 52);
+  function laneX(lane,y){return getRoadCenter(y,distance)-ROAD_WIDTH/2+(lane+.5)*ROAD_WIDTH/LANES;}
+  window.addEventListener('resize',()=>{ROAD_WIDTH=width*.8;scale=Math.min(1.25,ROAD_WIDTH/LANES/52);player.w=30*scale;player.h=52*scale;player.y=Math.max(90,height-150);player.x=getRoadCenter(player.y,distance);});
+
+  function getRoadCenter(y, dist) {
+    const wave1 = Math.sin((dist - y) * 0.003) * width * .038;
+    const wave2 = Math.cos((dist - y) * 0.0012) * width * .028;
+    return (width / 2) + wave1 + wave2;
+  }
+
+  // Трафик
+  let enemies = [];
+  const ENEMY_COLORS = ['#ff0055', '#ffe600', '#bf00ff', '#ff5500'];
+  let spawnTimer = 0;
+
+  function resetGame() {
+    mode='race';clearInput();earned=0;coins=[];coinTimer=1;
+    mainMenu.classList.add('hidden');shopScreen.classList.add('hidden');controls.classList.remove('hidden');
+    player.w=30*scale;player.h=52*scale;balances();
+    distance = 0;
+    speed = baseSpeed;
+    isGameOver = false;
+    enemies = [];
+    spawnTimer = 0;
+    gameOverScreen.classList.add('hidden');
+    player.y = Math.max(90,height - 150);
+    player.x = getRoadCenter(player.y, 0);
+    player.vx = 0;
+  }
+
+  restartBtn.addEventListener('click', () => {
+    resetGame();
+  });
+
+  function spawnEnemy() {
+    const center = getRoadCenter(-60, distance);
+    const lane = Math.floor(Math.random()*LANES);
+    const ex = laneX(lane,-70);
+    const enemySpeed = (Math.random() * 60 + 80);
+    const color = ENEMY_COLORS[Math.floor(Math.random() * ENEMY_COLORS.length)];
+
+    enemies.push({
+      x: ex,
+      y: -70,
+      lane: lane,
+      w: 28*scale,
+      h: 48*scale,
+      speed: enemySpeed,
+      color: color
+    });
+  }
+
+  function checkCollision(r1, r2) {
+    const paddingX = 4;
+    const paddingY = 6;
+    return !(
+      r1.x + r1.w / 2 - paddingX < r2.x - r2.w / 2 + paddingX ||
+      r1.x - r1.w / 2 + paddingX > r2.x + r2.w / 2 - paddingX ||
+      r1.y + r1.h / 2 - paddingY < r2.y - r2.h / 2 + paddingY ||
+      r1.y - r1.h / 2 + paddingY > r2.y + r2.h / 2 - paddingY
+    );
+  }
+
+  function drawCar(x, y, w, h, color, isPlayer = false) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Свечение кузова
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = color;
+
+    // Корпус
+    ctx.fillStyle = '#11131a';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, -h / 2, w, h, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Неоновые полосы по бокам
+    ctx.fillStyle = color;
+    ctx.fillRect(-w / 2 + 3, -h / 2 + 10, 2, h - 20);
+    ctx.fillRect(w / 2 - 5, -h / 2 + 10, 2, h - 20);
+
+    // Лобовое стекло
+    ctx.fillStyle = '#05070d';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(-w / 2 + 4, isPlayer ? -h / 4 : -h / 3, w - 8, h / 3.2, 3);
+    ctx.fill();
+    ctx.stroke();
+
+    // Фары
+    if (isPlayer) {
+      // Передние фары игрока (светят вперед)
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#00ffff';
+      ctx.fillStyle = '#00ffff';
+      ctx.fillRect(-w / 2 + 3, -h / 2, 6, 3);
+      ctx.fillRect(w / 2 - 9, -h / 2, 6, 3);
+
+      // Задние габариты
+      ctx.shadowColor = '#ff0055';
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(-w / 2 + 3, h / 2 - 3, 6, 3);
+      ctx.fillRect(w / 2 - 9, h / 2 - 3, 6, 3);
+    } else {
+      // Фары встречной машины (светят вниз на игрока)
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#fffae0';
+      ctx.fillStyle = '#fffae0';
+      ctx.fillRect(-w / 2 + 3, h / 2 - 3, 6, 3);
+      ctx.fillRect(w / 2 - 9, h / 2 - 3, 6, 3);
+
+      // Задние габариты
+      ctx.shadowColor = '#ff0033';
+      ctx.fillStyle = '#ff0033';
+      ctx.fillRect(-w / 2 + 3, -h / 2, 6, 3);
+      ctx.fillRect(w / 2 - 9, -h / 2, 6, 3);
+    }
+
+    if(isPlayer){const a=currentCar().shape;ctx.shadowColor=color;ctx.fillStyle=color;for(let j=0;j<=a;j++)ctx.fillRect(-w/2+6+j*(w-12)/(a+1),h*.08,1.5,h*.22);if(a>=3)ctx.fillRect(-w/2-3,h/2-7,w+6,3);if(a===2){ctx.beginPath();ctx.moveTo(0,-h/2+5);ctx.lineTo(-4,-h/4);ctx.lineTo(4,-h/4);ctx.closePath();ctx.fill();}}
+    ctx.restore();
+  }
+
+  let lastTime = performance.now();
+
+  function gameLoop(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.033);
+    lastTime = now;
+
+    if (!isGameOver) {
+      // Ускорение и газ
+      const targetSpeed = keys.gas ? maxSpeed : baseSpeed + Math.min(distance * 0.05, 140);
+      speed += (targetSpeed - speed) * 3 * dt;
+
+      const previousCenter=getRoadCenter(player.y,distance);
+      distance += speed * dt;
+      player.x += getRoadCenter(player.y,distance)-previousCenter;
+
+      // Управление рулем
+      const steerSpeed = width * .75;
+      if (keys.left) player.x -= steerSpeed * dt;
+      if (keys.right) player.x += steerSpeed * dt;
+
+      player.y = Math.max(90,height - 150);
+
+      // Ограничение границами дороги
+      const roadCenterX = getRoadCenter(player.y, distance);
+      const halfRoad = ROAD_WIDTH / 2;
+      const minX = roadCenterX - halfRoad + player.w / 2;
+      const maxX = roadCenterX + halfRoad - player.w / 2;
+
+      if (player.x < minX || player.x > maxX) {
+        // Удар об отбойник или вылет
+        speed *= 0.94;
+        if (player.x < minX - 14 || player.x > maxX + 14) {
+          finishRace();
+        }
+      }
+
+      // Спавн врагов
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnEnemy();
+        const baseInterval = Math.max(0.65, 1.8 - (distance * 0.00015));
+        spawnTimer = baseInterval + Math.random() * 0.6;
+      }
+
+      // Монеты идут цепочками по полосам; каждая даёт строго 2 единицы в кошелёк и итог заезда.
+      coinTimer-=dt;
+      if(coinTimer<=0){const lane=Math.floor(Math.random()*LANES);if(!enemies.some(en=>en.lane===lane&&en.y<140)){for(let j=0;j<4;j++)coins.push({lane,y:-70-j*40,x:0,w:20*scale,h:20*scale});}coinTimer=1.5+Math.random();}
+      for(let i=coins.length-1;i>=0;i--){const coin=coins[i];coin.y+=speed*dt;coin.x=laneX(coin.lane,coin.y);if(checkCollision(player,coin)){wallet+=2;earned+=2;coins.splice(i,1);save();balances();}else if(coin.y>height+30)coins.splice(i,1);}
+      // Обновление врагов
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const en = enemies[i];
+        en.y += (speed + en.speed) * dt;
+        en.x=laneX(en.lane,en.y);
+
+        // Коллизия
+        if (checkCollision(player, en)) {
+          finishRace();
+        }
+
+        // Удаление за экраном
+        if (en.y > height + 80) {
+          enemies.splice(i, 1);
+        }
+      }
+
+      // Обновление HUD
+      scoreEl.textContent = `ДИСТАНЦИЯ: ${Math.floor(distance / 10)} м`;
+      speedEl.textContent = `${Math.floor(speed * 0.45)} КМ/Ч`;
+    }
+
+    // --- ОТРИСОВКА ---
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle='#080812';ctx.fillRect(0,0,width,height);
+    ctx.strokeStyle='#241233';ctx.lineWidth=1;
+    for(let y=(distance*.35)%45;y<height;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke();}
+    for(let x=0;x<width;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke();}
+
+    // Дорожное полотно и неон
+    const steps = 30;
+    const stepHeight = height / steps;
+
+    // Отрисовка асфальта полосами
+    for (let i = 0; i < steps; i++) {
+      const y1 = i * stepHeight;
+      const y2 = y1 + stepHeight;
+      const cx1 = getRoadCenter(y1, distance);
+      const cx2 = getRoadCenter(y2, distance);
+
+      // Фон дороги
+      ctx.fillStyle = '#090a16';
+      ctx.beginPath();
+      ctx.moveTo(cx1 - ROAD_WIDTH / 2, y1);
+      ctx.lineTo(cx1 + ROAD_WIDTH / 2, y1);
+      ctx.lineTo(cx2 + ROAD_WIDTH / 2, y2);
+      ctx.lineTo(cx2 - ROAD_WIDTH / 2, y2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Обочины (неоновые барьеры)
+    ctx.save();
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ff007f';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ff007f';
+
+    // Левый край дороги
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const y = i * stepHeight;
+      const cx = getRoadCenter(y, distance);
+      if (i === 0) ctx.moveTo(cx - ROAD_WIDTH / 2, y);
+      else ctx.lineTo(cx - ROAD_WIDTH / 2, y);
+    }
+    ctx.stroke();
+
+    // Правый край дороги
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const y = i * stepHeight;
+      const cx = getRoadCenter(y, distance);
+      if (i === 0) ctx.moveTo(cx + ROAD_WIDTH / 2, y);
+      else ctx.lineTo(cx + ROAD_WIDTH / 2, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Прерывистая разметка по центру дороги
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#00ffff';
+    ctx.fillStyle = '#00ffff';
+
+    const dashSpacing = 50;
+    const offset = (distance * 0.9) % dashSpacing;
+
+    for(let lane=1;lane<LANES;lane++){
+      for(let y=-dashSpacing+offset;y<height;y+=dashSpacing){
+        const cx=getRoadCenter(y,distance)-ROAD_WIDTH/2+lane*ROAD_WIDTH/LANES;
+        ctx.fillRect(cx-1,y,2,24);
+      }
+    }
+    ctx.restore();
+
+    // Отрисовка золотых монет.
+    ctx.save();ctx.shadowColor='#ffc400';ctx.shadowBlur=12;
+    coins.forEach(coin=>{const r=10*scale;ctx.fillStyle='#ffcf47';ctx.beginPath();ctx.arc(coin.x,coin.y,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff4ad';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(coin.x,coin.y,r*.66,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#8e5500';ctx.font='bold '+Math.round(12*scale)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('$',coin.x,coin.y+.5);});ctx.restore();
+    // Отрисовка трафика
+    enemies.forEach(en => {
+      drawCar(en.x, en.y, en.w, en.h, en.color, false);
+    });
+
+    // Отрисовка игрока
+    drawCar(player.x, player.y, player.w, player.h, currentCar().color, true);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  resetGame();
+  showMenu();
+  requestAnimationFrame(gameLoop);
+})();
+</script>
+</body>
+</html>
