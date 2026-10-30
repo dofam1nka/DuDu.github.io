@@ -33,37 +33,50 @@
         <div class="section-title">Все игры</div>
         <div class="grid">
             
-            <!-- Карточка первой игры -->
-            <div class="card">
-                <div class="card-preview">🐍</div>
-                <div class="card-info">
-                    <h3>Змейка DuDu</h3>
-                    <p>Наша первая игра от нейросети!</p>
-                    <a href="snake.html" class="play-btn">Играть</a>
+           <!-- Стили для отступов (можно перенести в отдельный CSS-файл) -->
+<style>
+    .games-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px; /* Расстояние между карточками. Сделайте 24px или 30px, если хотите еще дальше */
+    }
+</style>
 
-                    
-            
-                    <!-- Карточка второй игры -->
-            <div class="card">
-                <div class="card-preview">🏎️</div>
-                <div class="card-info">
-                    <h3>Racing DuDu</h3>
-                    <p>Крутые ретро-гонки с заносами в стиле киберпанк.</p>
-                    <a href="racing.html" class="play-btn">Играть</a>
-                </div>
-            </div>
-           
-        
-                    
-                    <!-- Карточка третьей игры -->
-            <div class="card">
-                <div class="card-preview">🔫</div>
-                <div class="card-info">
-                    <h3>Top City Down</h3>
-                    <p>Криминальный 2D-симулятор. Угоняй тачки, сражайся с копами и ищи редкий лут с прохожих!</p>
-                    <a href="tcd.html" class="play-btn">Играть</a>
-                </div>
-            </div>
+<!-- Общий контейнер для всех карточек -->
+<div class="games-list">
+
+    <!-- Карточка первой игры -->
+    <div class="card">
+        <div class="card-preview">🐍</div>
+        <div class="card-info">
+            <h3>Змейка DuDu</h3>
+            <p>Наша первая игра от нейросети!</p>
+            <a href="snake.html" class="play-btn">Играть</a>
+        </div>
+    </div>
+
+    <!-- Карточка второй игры -->
+    <div class="card">
+        <div class="card-preview">🏎️</div>
+        <div class="card-info">
+            <h3>Racing DuDu</h3>
+            <p>Крутые ретро-гонки с заносами в стиле киберпанк.</p>
+            <a href="racing.html" class="play-btn">Играть</a>
+        </div>
+    </div>
+
+    <!-- Карточка третьей игры -->
+    <div class="card">
+        <div class="card-preview">🔫</div>
+        <div class="card-info">
+            <h3>Top City Down</h3>
+            <p>Криминальный 2D-симулятор. Угоняй тачки, сражайся с копами и ищи редкий лут с прохожих!</p>
+            <a href="tcd.html" class="play-btn">Играть</a>
+        </div>
+    </div>
+
+</div>
+
 
                 </div>
             </div>
