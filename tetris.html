@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DuDu Tetris</title>
+<style>
+:root{--bg:#101323;--panel:#1b2040;--panel2:#252b50;--text:#f5f7ff;--muted:#9da7cf;--accent:#7c5cff;--accent2:#32e6b1}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#394177 0,#171a31 46%,#0b0d18 100%);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);display:flex;justify-content:center;align-items:center;padding:18px;touch-action:manipulation}
+.wrap{width:min(920px,100%)}
+header{display:flex;align-items:center;justify-content:space-between;margin:0 auto 14px;max-width:680px}
+h1{font-size:clamp(28px,6vw,48px);margin:0;letter-spacing:1px;background:linear-gradient(90deg,#fff,#bcaeff 42%,#53f4c8);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .tag{font-weight:800;color:#ffd665;letter-spacing:2px;font-size:12px}
+.game{display:grid;grid-template-columns:minmax(320px,400px) minmax(190px,1fr);gap:18px;align-items:start;justify-content:center}
+.boardShell,.side{background:rgba(27,32,64,.88);border:1px solid #3c477f;border-radius:22px;box-shadow:0 18px 50px #05061180;backdrop-filter:blur(8px)}
+.boardShell{padding:12px;position:relative}
+.boardFrame{background:#070a14;border:4px solid #4b5795;border-radius:13px;padding:5px;position:relative;box-shadow:inset 0 0 25px #000}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+#board{background:#090d1b;border-radius:6px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#070a14b8;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;padding:20px;text-align:center}
+.overlay.show{opacity:1;pointer-events:auto}.overlayBox{background:#202752;border:1px solid #5969b3;border-radius:16px;padding:22px 26px;box-shadow:0 12px 35px #0008}.overlay h2{margin:0 0 6px;font-size:28px}.overlay p{margin:0;color:var(--muted)}
+.side{padding:16px;display:grid;gap:14px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{background:linear-gradient(145deg,#282f59,#1d2347);border:1px solid #414d89;border-radius:14px;padding:11px 12px}.label{color:var(--muted);font-size:12px}.value{font-size:25px;font-weight:850;margin-top:2px}.nextBox{background:#11162d;border:1px solid #394579;border-radius:15px;padding:11px}.nextBox h3{font-size:13px;margin:0 0 7px;color:#c7cff4}.nextCanvas{width:100%;max-width:130px;margin:auto}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.btn,.control{border:1px solid #5260a4;background:#2b3465;color:var(--text);font-weight:800;border-radius:12px;padding:11px 10px;cursor:pointer;transition:transform .08s,background .15s}.btn:hover,.control:hover{background:#39467e}.btn:active,.control:active{transform:scale(.96)}.btn.primary{background:linear-gradient(135deg,#7659ed,#4c83e8);border-color:#8d78ff}.help{font-size:12px;line-height:1.55;color:var(--muted);border-top:1px solid #394579;padding-top:12px}.help b{color:#eef0ff}
+.touch{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}.control{font-size:18px;padding:12px 4px;min-height:46px}.control.drop{color:#ffd665}.status{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;min-height:18px}
+@media(max-width:700px){body{padding:10px;align-items:flex-start}.game{grid-template-columns:minmax(0,400px);justify-content:center}.side{grid-template-columns:1fr 1fr;align-items:start}.nextBox{grid-column:1/-1}.help{grid-column:1/-1}.buttons{grid-column:1/-1}header{margin-bottom:9px}.touch{margin-top:9px}}
+@media(max-width:380px){.side{padding:11px;gap:10px}.value{font-size:21px}.card{padding:8px}.boardShell{padding:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>DuDu Tetris</h1><span class="tag">CLASSIC</span></header>
+<div class="game">
+<section class="boardShell">
+<div class="boardFrame"><canvas id="board" width="300" height="600" aria-label="Игровое поле"></canvas><div id="overlay" class="overlay"><div class="overlayBox"><h2 id="overlayTitle">Пауза</h2><p id="overlayText">Нажми «Продолжить»</p></div></div></div>
+<div class="touch" aria-label="Управление"><button class="control" data-action="left">◀</button><button class="control" data-action="rotate">↻</button><button class="control drop" data-action="down">▼</button><button class="control" data-action="hard">⤓</button><button class="control" data-action="right">▶</button></div>
+<div id="status" class="status">Игра началась</div>
+</section>
+<aside class="side">
+<div class="cards"><div class="card"><div class="label">СЧЁТ</div><div id="score" class="value">0</div></div><div class="card"><div class="label">УРОВЕНЬ</div><div id="level" class="value">1</div></div><div class="card"><div class="label">ЛИНИИ</div><div id="lines" class="value">0</div></div><div class="card"><div class="label">РЕКОРД</div><div id="highScore" class="value">0</div></div></div>
+<div class="nextBox"><h3>СЛЕДУЮЩАЯ ФИГУРА</h3><canvas id="next" class="nextCanvas" width="130" height="100"></canvas></div>
+<div class="buttons"><button id="pauseBtn" class="btn primary">Пауза</button><button id="restartBtn" class="btn">Заново</button></div>
+<div class="help"><b>Клавиши:</b> ← → — движение, ↑ — поворот, ↓ — ускорить, пробел — бросить, P — пауза.<br><b>Важно:</b> автоматическое падение работает через единый игровой цикл, который каждый кадр обновляет и состояние, и Canvas.</div>
+</aside>
+</div>
+</div>
+<script>
+'use strict';
+const COLS=10, ROWS=20, CELL=30;
+const boardCanvas=document.getElementById('board'), ctx=boardCanvas.getContext('2d');
+const nextCanvas=document.getElementById('next'), nextCtx=nextCanvas.getContext('2d');
+const scoreEl=document.getElementById('score'), levelEl=document.getElementById('level'), linesEl=document.getElementById('lines'), highScoreEl=document.getElementById('highScore');
+const overlay=document.getElementById('overlay'), overlayTitle=document.getElementById('overlayTitle'), overlayText=document.getElementById('overlayText'), statusEl=document.getElementById('status');
+const pauseBtn=document.getElementById('pauseBtn');
+const colors={I:'#32e6b1',J:'#5c8cff',L:'#ff9d4d',O:'#ffd65c',S:'#72e05f',T:'#b76cff',Z:'#ff668c'};
+const shapes={
+ I:[[1,1,1,1]], J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]], O:[[1,1],[1,1]], S:[[0,1,1],[1,1,0]], T:[[0,1,0],[1,1,1]], Z:[[1,1,0],[0,1,1]]
+};
+let board, current, nextType, score, lines, level, gameOver, paused, lastTime=0, dropCounter=0, animationId;
+let highScore=Number(localStorage.getItem('dudu-tetris-high')||0); highScoreEl.textContent=highScore;
+function newBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(null));}
+function randomType(){const keys=Object.keys(shapes);return keys[Math.floor(Math.random()*keys.length)];}
+function copyShape(type){return shapes[type].map(row=>row.slice());}
+function makePiece(type){const matrix=copyShape(type);return {type,matrix,x:Math.floor((COLS-matrix[0].length)/2),y:0};}
+function resetGame(){board=newBoard();score=0;lines=0;level=1;gameOver=false;paused=false;dropCounter=0;lastTime=performance.now();nextType=randomType();spawn();hideOverlay();updateUI();statusEl.textContent='Игра началась';}
+function spawn(){current=makePiece(nextType);nextType=randomType();drawNext();if(collides(current)){gameOver=true;showOverlay('Игра окончена','Нажми «Заново», чтобы начать');statusEl.textContent='Фигуры закончились';}}
+function collides(piece,dx=0,dy=0,matrix=piece.matrix){for(let y=0;y<matrix.length;y++){for(let x=0;x<matrix[y].length;x++){if(!matrix[y][x])continue;const nx=piece.x+x+dx,ny=piece.y+y+dy;if(nx<0||nx>=COLS||ny>=ROWS)return true;if(ny>=0&&board[ny][nx])return true;}}return false;}
+function merge(){current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value&&current.y+y>=0)board[current.y+y][current.x+x]=current.type;}));}
+function rotateMatrix(matrix){return matrix[0].map((_,i)=>matrix.map(row=>row[i]).reverse());}
+function rotate(){if(paused||gameOver)return;const rotated=rotateMatrix(current.matrix);const offsets=[0,-1,1,-2,2];for(const offset of offsets){if(!collides(current,offset,0,rotated)){current.x+=offset;current.matrix=rotated;return;}}}
+function move(dx){if(paused||gameOver)return;if(!collides(current,dx,0)){current.x+=dx;}}
+function softDrop(){if(paused||gameOver)return;if(!collides(current,0,1)){current.y++;score++;updateUI();}else lockPiece();dropCounter=0;}
+function hardDrop(){if(paused||gameOver)return;let distance=0;while(!collides(current,0,1)){current.y++;distance++;}score+=distance*2;lockPiece();dropCounter=0;}
+function lockPiece(){merge();clearLines();spawn();updateUI();}
+function clearLines(){let cleared=0;for(let y=ROWS-1;y>=0;y--){if(board[y].every(Boolean)){board.splice(y,1);board.unshift(Array(COLS).fill(null));cleared++;y++;}}if(cleared){const points=[0,100,300,500,800][cleared]*level;score+=points;lines+=cleared;level=Math.floor(lines/10)+1;statusEl.textContent=`Очищено линий: ${cleared}`;}}
+function updateUI(){scoreEl.textContent=score;linesEl.textContent=lines;levelEl.textContent=level;if(score>highScore){highScore=score;localStorage.setItem('dudu-tetris-high',highScore);highScoreEl.textContent=highScore;}}
+function dropInterval(){return Math.max(90,800-(level-1)*65);}
+function update(time=0){const delta=Math.min(time-lastTime,100);lastTime=time;if(!paused&&!gameOver){dropCounter+=delta;if(dropCounter>=dropInterval()){if(!collides(current,0,1))current.y++;else lockPiece();dropCounter=0;}}draw();animationId=requestAnimationFrame(update);}
+function drawCell(context,x,y,color,size){const px=x*size,py=y*size;context.fillStyle=color;context.fillRect(px+1,py+1,size-2,size-2);context.fillStyle='rgba(255,255,255,.2)';context.fillRect(px+3,py+3,size-7,Math.max(2,size*.12));context.strokeStyle='rgba(0,0,0,.22)';context.strokeRect(px+1.5,py+1.5,size-3,size-3);}
+function draw(){ctx.clearRect(0,0,boardCanvas.width,boardCanvas.height);ctx.fillStyle='#090d1b';ctx.fillRect(0,0,boardCanvas.width,boardCanvas.height);for(let y=0;y<ROWS;y++){for(let x=0;x<COLS;x++){ctx.strokeStyle='rgba(132,148,220,.10)';ctx.strokeRect(x*CELL+.5,y*CELL+.5,CELL,CELL);if(board[y][x])drawCell(ctx,x,y,colors[board[y][x]],CELL);}}if(current&&!gameOver){const ghost={...current,matrix:current.matrix};while(!collides(ghost,0,1))ghost.y++;drawPiece(ghost,true);drawPiece(current,false);}}
+function drawPiece(piece,ghost){piece.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(!value||piece.y+y<0)return;if(ghost){ctx.fillStyle=colors[piece.type]+'30';ctx.strokeStyle=colors[piece.type]+'80';ctx.lineWidth=2;ctx.strokeRect((piece.x+x)*CELL+4,(piece.y+y)*CELL+4,CELL-8,CELL-8);}else drawCell(ctx,piece.x+x,piece.y+y,colors[piece.type],CELL);}));}
+function drawNext(){nextCtx.clearRect(0,0,nextCanvas.width,nextCanvas.height);nextCtx.fillStyle='#11162d';nextCtx.fillRect(0,0,nextCanvas.width,nextCanvas.height);const matrix=shapes[nextType];const size=22;const ox=(nextCanvas.width-matrix[0].length*size)/2,oy=(nextCanvas.height-matrix.length*size)/2;matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value){nextCtx.fillStyle=colors[nextType];nextCtx.fillRect(ox+x*size+1,oy+y*size+1,size-2,size-2);nextCtx.fillStyle='rgba(255,255,255,.2)';nextCtx.fillRect(ox+x*size+3,oy+y*size+3,size-7,3);}}));}
+function showOverlay(title,text){overlayTitle.textContent=title;overlayText.textContent=text;overlay.classList.add('show');}
+function hideOverlay(){overlay.classList.remove('show');}
+function togglePause(){if(gameOver)return;paused=!paused;if(paused){showOverlay('Пауза','Нажми «Продолжить», чтобы вернуться в игру');pauseBtn.textContent='Продолжить';statusEl.textContent='Игра на паузе';}else{hideOverlay();pauseBtn.textContent='Пауза';statusEl.textContent='Игра продолжается';lastTime=performance.now();}}
+function action(name){if(name==='left')move(-1);if(name==='right')move(1);if(name==='rotate')rotate();if(name==='down')softDrop();if(name==='hard')hardDrop();}
+document.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown',' ','p'].includes(key))e.preventDefault();if(key==='arrowleft')move(-1);else if(key==='arrowright')move(1);else if(key==='arrowup')rotate();else if(key==='arrowdown')softDrop();else if(key===' ')hardDrop();else if(key==='p')togglePause();});
+document.querySelectorAll('[data-action]').forEach(btn=>{btn.addEventListener('pointerdown',e=>{e.preventDefault();action(btn.dataset.action);});});
+pauseBtn.addEventListener('click',togglePause);document.getElementById('restartBtn').addEventListener('click',resetGame);overlay.addEventListener('click',()=>{if(paused)togglePause();});
+resetGame();draw();animationId=requestAnimationFrame(update);
+</script>
+</body>
+</html>
